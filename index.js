@@ -16,8 +16,8 @@ const Match = require('./Modals/Match');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const Group        = require('../GMS_App_Server/Modals/Group');
-const GroupMessage = require('../GMS_App_Server/Modals/GroupMessage'); // your existing schema
+const Group        = require('./Modals/Group');
+const GroupMessage = require('./Modals/GroupMessage');
 const app = express();
 const port = 5001;
 
