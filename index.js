@@ -553,11 +553,15 @@ app.post('/accept-request', async (req, res) => {
     );
 
     // ── Create a Match so both users appear in each other's recent-chats ──
-    const existing = await Match.findOne({ users: { $all: [myId, otherUserId] } });
-    if (!existing) {
-      await Match.create({ users: [myId, otherUserId] });
-    }
-
+   const existing = await Match.findOne({ users: { $all: [myId, otherUserId] } });
+if (!existing) {
+  await Match.create({ users: [myId, otherUserId] });
+}
+// Also create reverse so both users see each other
+const reverse = await Match.findOne({ users: { $all: [otherUserId, myId] } });
+if (!reverse) {
+  await Match.create({ users: [otherUserId, myId] });
+}
     res.json({ status: 'ok' });
   } catch (e) {
     res.status(500).json({ message: e.message });
@@ -1026,10 +1030,10 @@ app.get('/recent-chats', auth, async (req, res) => {
   try {
     // Only show chats with matched users
     const matches = await Match.find({ users: req.userId });
-    const matchedUserIds = matches.map(m =>
-      String(m.users.find(u => String(u) !== req.userId))
-    );
-
+const matchedUserIds = matches.map(m => {
+  const other = m.users.find(u => String(u) !== String(req.userId));
+  return other ? String(other) : null;
+}).filter(Boolean);
     const result = await Promise.all(matchedUserIds.map(async (otherId) => {
       const other = await User.findById(otherId).select('name profileImage profession hobby');
       const last  = await Message.findOne({
