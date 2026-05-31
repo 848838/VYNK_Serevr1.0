@@ -1083,7 +1083,10 @@ app.get('/user/:id', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
+app.get('/debug-matches', auth, async (req, res) => {
+  const matches = await Match.find({ users: req.userId });
+  res.json({ userId: req.userId, matchCount: matches.length, matches });
+});
 app.get('/users', async (req, res) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(400).json({ message: 'No token provided' });
