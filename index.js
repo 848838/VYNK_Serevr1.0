@@ -615,15 +615,33 @@ app.post('/forgot-password', async (req, res) => {
     user.resetTokenExpiry = expiry;
     await user.save();
 
-    const resetLink = `vynk://reset-password?token=${token}`;
+const resetLink = `vynk://reset-password?token=${token}`;
 
-    await sendEmail({
-      to: email,
-      subject: 'Reset your Vynq password',
-      html: `<p>Click to reset your password. Link expires in 1 hour.</p>
-             <a href="${resetLink}">Reset Password</a>`,
-    });
-
+  await sendEmail({
+  to: email,
+  subject: 'Reset your Vynq password',
+  html: `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+      <h2 style="color: #7c3aed;">Reset your Vynq password</h2>
+      <p style="color: #374151; font-size: 15px;">
+        Tap the button below to reset your password. This link expires in <strong>1 hour</strong>.
+      </p>
+      <a href="${resetLink}"
+         style="display: inline-block; margin-top: 16px; padding: 14px 28px;
+                background-color: #7c3aed; color: #ffffff; text-decoration: none;
+                border-radius: 10px; font-weight: bold; font-size: 16px;">
+        Reset Password
+      </a>
+      <p style="margin-top: 24px; color: #9ca3af; font-size: 13px;">
+        If the button doesn't work, copy and paste this link:<br/>
+        <span style="color: #7c3aed;">${resetLink}</span>
+      </p>
+      <p style="color: #9ca3af; font-size: 12px; margin-top: 16px;">
+        If you didn't request this, ignore this email.
+      </p>
+    </div>
+  `,
+});
     res.json({ message: 'Reset email sent' });
   } catch (error) {
     console.error('forgot-password error:', error.message);
@@ -810,7 +828,19 @@ app.post('/create-group', auth, groupUpload.single('avatar'), async (req, res) =
     res.status(500).json({ status: 'error', message: 'Failed to create group' });
   }
 });
-
+// ── Cancel a pending request ──────────────────────────────────────────────────
+app.post('/cancel-request', auth, async (req, res) => {
+  try {
+    const { toUserId } = req.body;
+    await ChatRequest.findOneAndUpdate(
+      { userId: req.userId, otherUserId: toUserId },
+      { status: 'declined' }
+    );
+    res.json({ status: 'ok' });
+  } catch (e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
+});
 // ── Get all groups for current user ──────────────────────────────────────────
 app.get('/groups', auth, async (req, res) => {
   try {
