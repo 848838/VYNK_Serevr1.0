@@ -959,7 +959,11 @@ app.post('/group/:id/add-member', auth, async (req, res) => {
     res.status(500).json({ status: 'error' });
   }
 });
-
+// TEMPORARY DEBUG - remove after testing
+app.get('/debug-my-location', auth, async (req, res) => {
+  const user = await User.findById(req.userId).select('location name');
+  res.json(user);
+});
 // ── Fetch group messages ──────────────────────────────────────────────────────
 app.get('/group/:id/messages', auth, async (req, res) => {
   try {
