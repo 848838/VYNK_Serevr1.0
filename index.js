@@ -1,18 +1,14 @@
 
 require('dotenv').config();
-const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,     // your gmail
-    pass: process.env.EMAIL_PASS,     // app password (not your real password)
-  },
-});
+
+const { Resend } = require('resend');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async ({ to, subject, html }) => {
-  await transporter.sendMail({
-    from: `"Vynq App" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'Vynq <onboarding@resend.dev>',
     to,
     subject,
     html,
