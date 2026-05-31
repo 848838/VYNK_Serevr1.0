@@ -867,16 +867,16 @@ app.get('/nearby-users', auth, async (req, res) => {
     const me = await User.findById(req.userId).select('blockedUsers');
     const blockedIds = (me.blockedUsers || []).map(String);
 
-    const users = await User.find({
-      _id: { $ne: req.userId, $nin: blockedIds },
-      location: {
-        $near: {
-          $geometry: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
-          $maxDistance: parseFloat(radius),
-        },
-      },
-    }).select('name profileImage profession hobby location').limit(50);
-
+const users = await User.find({
+  _id: { $ne: req.userId, $nin: blockedIds },
+  'location.coordinates': { $ne: [0, 0] },
+  location: {
+    $near: {
+      $geometry: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
+      $maxDistance: parseFloat(radius),
+    },
+  },
+}).select('name profileImage profession hobby location').limit(50);
     // Calculate distance for each user
     const usersWithDistance = users.map(u => {
       const [uLng, uLat] = u.location.coordinates;
