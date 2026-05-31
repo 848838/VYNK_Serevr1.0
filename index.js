@@ -832,10 +832,12 @@ app.post('/create-group', auth, groupUpload.single('avatar'), async (req, res) =
 app.post('/cancel-request', auth, async (req, res) => {
   try {
     const { toUserId } = req.body;
-    await ChatRequest.findOneAndUpdate(
+    const result = await ChatRequest.findOneAndUpdate(
       { userId: req.userId, otherUserId: toUserId },
-      { status: 'declined' }
+      { status: 'cancelled' },
+      { new: true }
     );
+    console.log('cancel-request result:', result);
     res.json({ status: 'ok' });
   } catch (e) {
     res.status(500).json({ status: 'error', message: e.message });
