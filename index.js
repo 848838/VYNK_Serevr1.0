@@ -1,5 +1,23 @@
 
 require('dotenv').config();
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,     // your gmail
+    pass: process.env.EMAIL_PASS,     // app password (not your real password)
+  },
+});
+
+const sendEmail = async ({ to, subject, html }) => {
+  await transporter.sendMail({
+    from: `"Vynq App" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+};
 const mongoose = require('mongoose');
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -588,7 +606,58 @@ app.post('/signup', async (req, res) => {
     return res.status(500).json({ error: "Signup failed" });
   }
 });
+app.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'No account with this email' });
 
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = Date.now() + 3600000;
+
+    user.resetToken = token;
+    user.resetTokenExpiry = expiry;
+    await user.save();
+
+    const resetLink = `vynk://reset-password?token=${token}`;
+
+    await sendEmail({
+      to: email,
+      subject: 'Reset your Vynq password',
+      html: `<p>Click to reset your password. Link expires in 1 hour.</p>
+             <a href="${resetLink}">Reset Password</a>`,
+    });
+
+    res.json({ message: 'Reset email sent' });
+  } catch (error) {
+    console.error('forgot-password error:', error.message);
+    res.status(500).json({ error: 'Failed to send reset email' });
+  }
+});
+app.get('/reset-password/verify', async (req, res) => {
+  const { token } = req.query;
+  const user = await User.findOne({
+    resetToken: token,
+    resetTokenExpiry: { $gt: Date.now() },
+  });
+  if (!user) return res.status(400).json({ error: 'Invalid or expired token' });
+  res.json({ valid: true });
+});
+app.post('/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  const user = await User.findOne({
+    resetToken: token,
+    resetTokenExpiry: { $gt: Date.now() },
+  });
+  if (!user) return res.status(400).json({ error: 'Invalid or expired token' });
+
+  user.password = newPassword; // hash it if you hash passwords
+  user.resetToken = undefined;
+  user.resetTokenExpiry = undefined;
+  await user.save();
+
+  res.json({ message: 'Password reset successful' });
+});
 app.post('/save-push-token', async (req, res) => {
   try {
     const { userId, pushToken } = req.body;

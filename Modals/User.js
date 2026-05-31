@@ -22,6 +22,8 @@ const UserSchema = new mongoose.Schema({
   expoPushToken:  { type: String, default: '' },
   blockedUsers:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 bannerImage: { type: String, default: '' },
+resetToken: String,
+resetTokenExpiry: Number,
   // ── Active login sessions ────────────────────────────────────────────────
   // Each entry = one logged-in device. Remove an entry to force-logout that device.
   sessions: { type: [SessionSchema], default: [] },
