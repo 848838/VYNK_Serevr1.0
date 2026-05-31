@@ -27,6 +27,12 @@ resetTokenExpiry: Number,
   // ── Active login sessions ────────────────────────────────────────────────
   // Each entry = one logged-in device. Remove an entry to force-logout that device.
   sessions: { type: [SessionSchema], default: [] },
+  location: {
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], default: [0, 0] }, // [longitude, latitude]
+  },
 });
+
+UserSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('User', UserSchema);

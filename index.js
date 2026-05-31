@@ -843,6 +843,67 @@ app.post('/cancel-request', auth, async (req, res) => {
     res.status(500).json({ status: 'error', message: e.message });
   }
 });
+
+// ── Update my location ────────────────────────────────────────────────────────
+app.post('/update-location', auth, async (req, res) => {
+  try {
+    const { latitude, longitude } = req.body;
+    await User.findByIdAndUpdate(req.userId, {
+      location: {
+        type: 'Point',
+        coordinates: [longitude, latitude],
+      },
+    });
+    res.json({ status: 'ok' });
+  } catch (e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
+});
+
+// ── Get nearby users ──────────────────────────────────────────────────────────
+app.get('/nearby-users', auth, async (req, res) => {
+  try {
+    const { latitude, longitude, radius = 10000 } = req.query; // radius in meters
+    const me = await User.findById(req.userId).select('blockedUsers');
+    const blockedIds = (me.blockedUsers || []).map(String);
+
+    const users = await User.find({
+      _id: { $ne: req.userId, $nin: blockedIds },
+      location: {
+        $near: {
+          $geometry: { type: 'Point', coordinates: [parseFloat(longitude), parseFloat(latitude)] },
+          $maxDistance: parseFloat(radius),
+        },
+      },
+    }).select('name profileImage profession hobby location').limit(50);
+
+    // Calculate distance for each user
+    const usersWithDistance = users.map(u => {
+      const [uLng, uLat] = u.location.coordinates;
+      const R = 6371;
+      const dLat = (uLat - parseFloat(latitude)) * Math.PI / 180;
+      const dLon = (uLng - parseFloat(longitude)) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(parseFloat(latitude) * Math.PI/180) * Math.cos(uLat * Math.PI/180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return {
+_id: u._id,
+        name: u.name,
+        profileImage: u.profileImage,
+        profession: u.profession,
+        hobby: u.hobby,
+        distance: Math.round(distance * 10) / 10,
+        latitude: uLat,
+        longitude: uLng,
+      };
+    });
+
+    res.json({ status: 'ok', users: usersWithDistance });
+  } catch (e) {
+    res.status(500).json({ status: 'error', message: e.message });
+  }
+});
 // ── Get all groups for current user ──────────────────────────────────────────
 app.get('/groups', auth, async (req, res) => {
   try {
