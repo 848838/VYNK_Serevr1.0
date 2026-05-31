@@ -1701,14 +1701,21 @@ app.post('/send-request', auth, async (req, res) => {
       userId: req.userId, otherUserId: toUserId
     });
   if (existing) {
-  if (existing.status === 'pending' || existing.status === 'accepted') {
-    return res.json({ status: 'ok', requestStatus: existing.status });
+    if (existing.status === 'pending' || existing.status === 'accepted') {
+      return res.json({ status: 'ok', requestStatus: existing.status });
+    }
+    existing.status = 'pending';
+    await existing.save();
+
+    const sender = await User.findById(req.userId).select('name profileImage');
+    io.to(toUserId).emit('newFollowRequest', {
+      fromUserId: req.userId,
+      name: sender.name,
+      profileImage: sender.profileImage,
+    });
+
+    return res.json({ status: 'ok', requestStatus: 'pending' });
   }
-  // For declined, update it back to pending
-  existing.status = 'pending';
-  await existing.save();
-  return res.json({ status: 'ok', requestStatus: 'pending' });
-}
 
     await ChatRequest.create({
       userId: req.userId, otherUserId: toUserId, status: 'pending'
